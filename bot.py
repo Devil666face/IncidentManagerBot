@@ -53,7 +53,7 @@ async def add_incident(message: types.Message, state: FSMContext):
 @dp.message_handler(state=StateBot.get_text)
 async def state_get_text(message: types.Message,state: FSMContext):
     StateBot.created_id = db.create_incident(incedent_text=message.text)
-    await message.answer('Текст инцидента принят.\nОтправьте мне необходимые фотографии для добавления.\nПосле того как отправите все фотографии нажмите ""Создать индцидент"".\nЕсли прикреплять фотографии нет необходимости нажмите ""Создать инцидент"".',reply_markup=kb.inline_create_incident(StateBot.created_id))
+    await message.answer('Текст инцидента принят.\nОтправьте мне необходимые фотографии для добавления.\nПосле того как отправите все фотографии нажмите "Создать индцидент".\nЕсли прикреплять фотографии нет необходимости нажмите "Создать инцидент".',reply_markup=kb.inline_create_incident(StateBot.created_id))
     await state.finish()
     StateBot.get_photo = True
 
@@ -65,9 +65,13 @@ async def state_get_text(message: types.Message,state: FSMContext):
 @dp.message_handler(content_types=['photo'])
 async def handle_docs_photo(message: types.Message):
     if StateBot.get_photo:
-        photo_count = make_dir(StateBot.created_id)
-        await message.photo[-1].download(Path(os.getcwd(),str(StateBot.created_id),f"{datetime.now().microsecond}.jpg"))
-        await message.answer(f'Фотография №{photo_count} принята')
+        make_dir(StateBot.created_id)
+        for photo_id in range(3,len(message.photo),4):
+            await message.photo[photo_id].download(Path(os.getcwd(),str(StateBot.created_id),f"{datetime.now().microsecond}.jpg"))
+        # await message.photo[-1].download(Path(os.getcwd(),str(StateBot.created_id),f"{datetime.now().microsecond}.jpg"))
+        # await message.answer(f'Фотография №{len(os.listdir(Path(os.getcwd(),str(StateBot.created_id))))} принята')
+        await message.answer(f'Фотография принята')
+        # print(len(os.listdir(Path(os.getcwd(),str(StateBot.created_id)))))
     else:
         print('Состояние не подходит')
 
