@@ -1,0 +1,139 @@
+docker build .
+docker images
+docker rmi *image_hash*
+docker rm *image_hash*
+docker run *image_hash/image_name* --rm -d --publish 8080:8080
+                                    удалнеие после выполнения
+                                        без логов
+                                            проброс портов
+docker system prune удалить неиспользуемые контейнеры
+docker-compose up 
+$ docker save python:2.7.17-alpine3.9 > /path/to/save/my-python-container.tar
+$ docker load < my-python-container.tar
+
+___________________________________________________________________________________________________________________________________________
+Экспорт образов Docker
+
+В первом упражнении мы экспортируем образы Docker такими, какие они есть, и переместим их на второй узел Docker, на котором работает engine.
+
+sudo docker save rook/ceph:master > rook-ceph.tar
+sudo docker save ceph/ceph:v14.2.2-20190826 > ceph.tar
+
+Флаг save Docker используется для сохранения одного или нескольких образов в архив tar.
+
+Для запуска контейнеров Docker сначала создайте новый образ из изменений контейнера.
+
+sudo docker commit --change "Added something" webapp webapp:v2
+sudo docker save webapp:v2 > webapp_v2.tar
+
+Где webapp – это имя запущенного контейнера.
+Импорт сохраненных образов Docker
+
+$ sudo docker import rook-ceph.tar
+Getting image source signatures
+Copying blob 5f91d4a491de: 829.12 MiB / 834.23 MiB [===========================]
+Copying blob 5f91d4a491de: 834.23 MiB / 834.23 MiB [=======================] 11s
+Copying config dd85e44a0f8b: 419 B / 419 B [================================] 0s
+Writing manifest to image destination
+Storing signatures
+dd85e44a0f8bcf876749eabaeae5924ab6778b5ce191b37e08d4874982d8a601
+
+Скопируйте ID образа и отметьте его правильно.
+
+ sudo docker tag 4e1a2b349b09 rook/ceph:master
+___________________________________________________________________________________________________________________________________________
+Как перенести / переместить образ Docker в другую систему?
+
+В идеальном случае передача изображений Docker осуществляется через реестр Docker или через полностью управляемого поставщика, такого как AWS ECR или Google GCR. Вы можете легко загрузить изображение с помощью команды docker push , а другие могут получить изображение с помощью команды docker pull .
+
+Хотя, если вам нужно переместить изображение с одного хоста на другой, чтобы протестировать его перед отправкой в ​​производственную среду, или вы хотите поделиться этим изображением с кем-то в офисе, это можно сделать, экспортировав изображение как .tar файл.
+
+Docker поддерживает два разных типа методов для сохранения изображений контейнера в один архив.
+
+    Docker save - Save используется для сохранения изображения (не контейнера)
+    Docker export - Export используется для сохранения контейнера (не изображения)
+
+Использование Docker Save Command:
+
+Сохранение изображения Docker:
+
+Во-первых, мы будем придерживаться плана, который сохраняет только изображение. Теперь пройдемся по команде docker save . Предположим, вам нужен образ Python с Alpine, который можно извлечь из Docker Hub:
+
+$ docker pull python:2.7.17-alpine3.9
+2.7.17-alpine3.9: Pulling from library/python
+e7c96db7181b: Already exists
+1819f4b92bc2: Already exists
+8061b3761cb3: Pull complete
+73aebae115de: Pull complete
+Digest: sha256:5f6059d78f530c3c59c4842e104ddcfc772a27fb8fac0d900f4d77bcb4621d9b
+Status: Downloaded newer image for python:2.7.17-alpine3.9
+docker.io/library/python:2.7.17-alpine3.9
+
+После добавления нескольких файлов или внесения изменений в контейнер вы решаете создать архив изображения, чтобы предоставить его коллеге. Вы можете достичь этого, выполнив следующую команду:
+
+$ docker save python:2.7.17-alpine3.9 > /path/to/save/my-python-container.tar
+
+  Просто убедитесь, что вы используете точное имя изображения и тег при создании tar. В нашем случае так и было python:2.7.17-alpine3.9 . Вы можете проверить, сработала ли вышеуказанная команда:  
+
+$ du -h my-python-container.tar 
+75M my-python-container.tar
+
+Теперь вы можете отправить файл .tar другому лицу через rsync , scp или аналогичный протокол передачи файлов в соответствии с вашими предпочтениями.
+
+Загрузка изображения докера:
+
+Как только на целевой машине будет файл .tar , вы можете загрузить образ в локальный реестр, используя команду docker load :
+
+$ docker load < my-python-container.tar
+
+  Теперь проверьте, есть ли у вас это изображение на целевом компьютере, с помощью docker images или docker image list . Конечный результат будет примерно таким:  
+
+$ docker image list
+REPOSITORY   TAG               IMAGE ID       CREATED              SIZE
+python       2.7.17-alpine3.9  3f0e580ded94   2 hours ago          74.9MB
+
+Использование команды экспорта Docker:
+
+Экспорт Docker-контейнера:
+
+Примечание. Команда docker export не будет экспортировать содержимое тома, который прикреплен к контейнеру. В этом случае вам необходимо выполнить дополнительную команду для резервного копирования, восстановления или миграции существующего тома.
+
+Посмотрев на метод docker export , сначала мы потянем альпийское изображение:
+
+$ docker pull alpine
+Using default tag: latest
+latest: Pulling from library/alpine
+e6b0cf9c0882: Pull complete
+Digest: sha256:2171658620155679240babee0a7714f6509fae66898db422ad803b951257db78
+Status: Downloaded newer image for alpine:latest
+docker.io/library/alpine:latest
+
+Теперь вы можете запустить экземпляр в режиме отсоединения, чтобы контейнер не разрушался при выходе из него.
+
+$ docker run -it --detach --name alpine-t alpine
+
+  Чтобы получить идентификатор контейнера и имя, которое мы создали, мы можем использовать команду docker ps . На всякий случай, если на вашей машине контейнер был остановлен по какой-либо причине, вы все равно можете получить идентификатор и имя, используя docker ps -a :  
+
+$ docker ps
+CONTAINER ID  IMAGE  COMMAND   CREATED         STATUS        PORTS    NAMES
+35f34fabfa84  alpine "/bin/sh" 14 seconds ago  8 seconds ago           alpine-t
+
+  Как мы видим, наш идентификатор контейнера 35f34fabfa84 (он будет другим для вас), или вы также можете использовать имя контейнера; в нашем случае это alpine-t . Теперь мы можем запустить команду docker export для экспорта изображения экземпляра:  
+
+$ docker export 35f34fabfa84 > alpine-t.tar
+
+Кроме того, вы также можете использовать OPTIONS, чтобы сделать то же самое, и ваш файл .tar будет готов для передачи.
+
+$ docker export --output="alpine-t.tar" 35f34fabfa84
+
+Импорт Docker-контейнера:
+
+Теперь вы можете импортировать файл .tar на целевой компьютер, используя импорт докера:
+
+$ sudo tar -c alpine-t.tar | docker import - alpine-t
+
+  Чтобы проверить, вы можете запустить контейнер с помощью --rm (он уничтожит контейнер, как только вы его выполните):  
+
+$ docker run --rm -it --name alpine-test alpine-t:[TAG]
+
+Простой гайд https://youtu.be/L28w7iDSNkI
