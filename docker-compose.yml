@@ -1,0 +1,10 @@
+version: '3'
+services:
+  bot:
+    container_name: IncidentBot
+    build: .
+    restart: on-failure
+    ports:
+      - "443:443"
+    volumes:
+      - ".:/IncidentBot_docker"
