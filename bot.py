@@ -45,9 +45,10 @@ async def add_question(call: types.CallbackQuery):
 
 @dp.message_handler(Text(equals='Добавить инцидент'))
 async def add_incident(message: types.Message, state: FSMContext):
-    await state.finish() 
-    await message.answer('Отправьте мне текст инцидента (ссылки и т.п.) одним сообщением')
-    await StateBot.get_text.set()
+    if db.user(message.from_user.id):
+        await state.finish() 
+        await message.answer('Отправьте мне текст инцидента (ссылки и т.п.) одним сообщением')
+        await StateBot.get_text.set()
 
 # Обработки состояния принятия текста
 @dp.message_handler(state=StateBot.get_text)
@@ -86,8 +87,9 @@ async def add_question(call: types.CallbackQuery):
 
 @dp.message_handler(Text(equals='Показать инциденты'))
 async def show_incident(message: types.Message, state: FSMContext):
-    all_incidents = db.get_incidents()
-    await message.answer('Выберите необходимый инцидент',reply_markup=kb.inline_all_incidents(all_incidents))
+    if db.user(message.from_user.id):
+        all_incidents = db.get_incidents()
+        await message.answer('Выберите необходимый инцидент',reply_markup=kb.inline_all_incidents(all_incidents))
 
 @dp.callback_query_handler(text_contains="incident_")
 async def get_incident(call: types.CallbackQuery):
@@ -103,6 +105,11 @@ async def add_question(call: types.CallbackQuery):
     await bot.delete_message(call.from_user.id, call.message.message_id)
     current_incident_id = call.data.split("_")[1]
     db.delete_incident(current_incident_id)
+
+@dp.message_handler(content_types=['text'],state=None)
+async def not_response(message: types.Message, state:FSMContext):
+    if db.user(message.from_user.id):
+        await message.answer('Я вас не понимаю.',reply_markup = kb.keyboard_main_buttons())
 
 if __name__=='__main__':
     executor.start_polling(dp, skip_updates=True)

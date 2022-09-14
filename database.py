@@ -57,3 +57,9 @@ class Database:
             self.cursor.execute(f"DELETE FROM Incidents WHERE id=?",(incident_id,))
             self.cursor.execute(f"DELETE FROM Photos WHERE id=?",(incident_id,))
             self.connection.commit()
+
+    def user(self, id):
+        with self.connection:
+            self.cursor.execute(f"SELECT id FROM User WHERE id=?",(id,))
+            # print(self.cursor.fetchone())
+            return True if self.cursor.fetchone() else False
